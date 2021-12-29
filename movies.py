@@ -16,7 +16,7 @@ def read_all():
     :return:                json list of all movies for all directors
     """
     # Query the database for all the movies
-    movies = Movies.query.order_by(Movies.id).limit(10)
+    movies = Movies.query.order_by(Movies.id).limit(1000)
     # .all()
 
     # Serialize the list of movies from our data

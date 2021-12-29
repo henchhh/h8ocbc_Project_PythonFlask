@@ -1,5 +1,4 @@
 from marshmallow import fields
-from datetime import datetime
 from config import db, ma
 
 class Directors(db.Model): # directors table

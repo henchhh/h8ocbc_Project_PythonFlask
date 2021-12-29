@@ -4,6 +4,7 @@ people data
 """
 
 from flask import make_response, abort
+from sqlalchemy import desc, func, text, asc
 from config import db
 from models import Directors, DirectorsSchema, Movies
 
@@ -15,7 +16,7 @@ def read_all():
     :return:        json string of list of directors
     """
     # Create the list of directors from our data
-    directors = Directors.query.order_by(Directors.id).limit(10)
+    directors = Directors.query.order_by(Directors.id).limit(50)
     # .all()
 
     # Serialize the data for the response
@@ -141,28 +142,50 @@ def delete(id):
     else:
         abort(404, f"Directors not found for ID: {id}")
 
-def read_by_name(name):
+def read_by_name(director_name):
     """
-    This function responds to a request for /api/directors/{id}?name="name"
+    This function responds to a request for /api/directors/{director_name}
     with one matching directors from directors
     :param id:   ID of directors to find
     :return:            directors matching id
     """
     # Build the initial query
+    search = "%{}%".format(director_name)
     directors = (
-        Directors.query.filter(Directors.name.ilike(name))
-        .outerjoin(Movies)
-        .one_or_none()
+        Directors.query.filter(Directors.name.like(search)).all()
     )
 
     # Did we find a directors?
     if directors is not None:
 
         # Serialize the data for the response
-        directors_schema = DirectorsSchema()
+        directors_schema = DirectorsSchema(many=True)
         data = directors_schema.dump(directors)
         return data
 
     # Otherwise, nope, didn't find that directors
     else:
-        abort(404, f"Directors not found for name that has {name}")
+        abort(404, f"Directors not found for name that has {director_name}")
+
+def read_most_movies():
+    """
+    This function responds to a request for /api/directors/{director_name}
+    with one matching directors from directors
+    :param id:   ID of directors to find
+    :return:            directors matching id
+    """
+    # Build the initial query
+    func_count = func.count(Movies.id)
+    directors = (
+        Directors.query.select_from(Directors)
+        .join(Movies, Directors.id == Movies.director_id)
+        .group_by(Directors.id)
+        .having(func.count(Movies.id))
+        .order_by(desc(func_count), asc(Directors.name))
+        .limit(10)
+    )
+
+    # Serialize the data for the response
+    directors_schema = DirectorsSchema(many=True)
+    data = directors_schema.dump(directors)
+    return data
